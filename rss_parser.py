@@ -120,7 +120,6 @@ class SwissNewsParser:
                     break
             
             if not content:
-                # Якщо не знайшли специфічний контент, беремо весь текст
                 content = soup.get_text()
             
             return self._clean_text(content)
