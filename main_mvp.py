@@ -14,6 +14,15 @@ from translate import Translator
 from summary import Summarizer
 from telegram_client import TelegramClient
 
+# Конфігурація функцій (легко ввімкнути/вимкнути)
+# Для ввімкнення OpenAI функцій:
+# 1. Поповніть баланс OpenAI або створіть новий API ключ
+# 2. Оновіть OPENAI_API_KEY в GitHub Secrets
+# 3. Змініть False на True для потрібних функцій
+USE_GPT_CLASSIFICATION = False  # Встановіть True коли є OpenAI квота
+USE_TRANSLATION = False         # Встановіть True для перекладу українською
+USE_SUMMARIZATION = False       # Встановіть True для створення синопсису
+
 
 def setup_logging():
     """Налаштування логування у консоль + файл"""
@@ -63,34 +72,57 @@ def process_article(article: Article, translator: Translator,
     
     logger.info(f"Обробляємо статтю: {article.title}")
     
-    # Крок 1: Додаткова GPT класифікація (якщо потрібно)
-    # ТИМЧАСОВО ВІДКЛЮЧЕНО через вичерпану квоту OpenAI
-    # text_for_classification = f"{article.title}\n{article.description}"
-    # if article.full_text:
-    #     text_for_classification += f"\n{article.full_text[:500]}"
-    #
-    # classification = translator.classify_ukraine_related(text_for_classification)
-    #
-    # if classification != "Ukraine-related":
-    #     logger.info(f"Стаття не про Україну за GPT класифікацією: {article.title}")
-    #     return None
+    # Крок 1: Додаткова GPT класифікація (якщо ввімкнено)
+    if USE_GPT_CLASSIFICATION:
+        text_for_classification = f"{article.title}\n{article.description}"
+        if article.full_text:
+            text_for_classification += f"\n{article.full_text[:500]}"
 
-    # Пропускаємо GPT класифікацію - використовуємо тільки ключові слова
-    logger.info(f"Пропускаємо GPT класифікацію для: {article.title}")
+        classification = translator.classify_ukraine_related(text_for_classification)
+
+        if classification != "Ukraine-related":
+            logger.info(f"Стаття не про Україну за GPT класифікацією: {article.title}")
+            return None
+
+        logger.info(f"✅ GPT підтвердив: стаття про Україну - {article.title}")
+    else:
+        logger.info(f"Пропускаємо GPT класифікацію (вимкнено) для: {article.title}")
     
-    # Крок 2: Переклад українською
-    # ТИМЧАСОВО ВІДКЛЮЧЕНО через вичерпану квоту OpenAI
-    logger.info(f"Пропускаємо переклад для мови: {article.language}")
+    # Крок 2: Переклад українською (якщо ввімкнено)
+    if USE_TRANSLATION:
+        logger.info(f"Перекладаємо з мови: {article.language}")
 
-    # Використовуємо оригінальний текст без перекладу
-    title_ua = article.title
-    description_ua = article.description
-    full_text_ua = article.full_text
+        title_ua = translator.translate_to_ukrainian(article.title, article.language)
+        description_ua = translator.translate_to_ukrainian(article.description, article.language)
 
-    # Крок 3: Створення синопсису
-    # ТИМЧАСОВО ВІДКЛЮЧЕНО через вичерпану квоту OpenAI
-    logger.info("Пропускаємо створення синопсису")
-    summary_ua = description_ua or "Короткий опис недоступний"
+        full_text_ua = None
+        if article.full_text:
+            full_text_ua = translator.translate_to_ukrainian(article.full_text, article.language)
+
+        if not title_ua:
+            logger.error(f"Не вдалося перекласти заголовок: {article.title}")
+            return None
+    else:
+        logger.info(f"Використовуємо оригінальний текст ({article.language})")
+        title_ua = article.title
+        description_ua = article.description
+        full_text_ua = article.full_text
+
+    # Крок 3: Створення синопсису (якщо ввімкнено)
+    if USE_SUMMARIZATION:
+        text_for_summary = full_text_ua or description_ua or ""
+        summary_ua = summarizer.create_summary_from_parts(
+            title_ua, description_ua, text_for_summary
+        )
+
+        if not summary_ua:
+            logger.warning(f"Не вдалося створити синопсис для: {title_ua}")
+            summary_ua = description_ua or "Короткий опис недоступний"
+        else:
+            logger.info("✅ Синопсис створено")
+    else:
+        logger.info("Використовуємо оригінальний опис (резюмування вимкнено)")
+        summary_ua = description_ua or "Короткий опис недоступний"
     
     return {
         'title': title_ua,
@@ -109,7 +141,13 @@ def main():
     logger = logging.getLogger(__name__)
     
     logger.info("🚀 Запуск telegram-news-ua-ch MVP")
-    
+
+    # Показуємо поточну конфігурацію
+    logger.info("⚙️ Конфігурація:")
+    logger.info(f"   - GPT класифікація: {'✅ Ввімкнено' if USE_GPT_CLASSIFICATION else '❌ Вимкнено'}")
+    logger.info(f"   - Переклад: {'✅ Ввімкнено' if USE_TRANSLATION else '❌ Вимкнено'}")
+    logger.info(f"   - Резюмування: {'✅ Ввімкнено' if USE_SUMMARIZATION else '❌ Вимкнено'}")
+
     try:
         # Завантаження конфігурації
         config = load_environment_variables()
