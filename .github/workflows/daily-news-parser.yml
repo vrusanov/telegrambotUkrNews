@@ -13,8 +13,33 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - run: python main_mvp.py
+
+      - name: Check secrets availability
+        run: |
+          echo "🔍 Checking secrets availability..."
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "❌ OPENAI_API_KEY is NOT set"
+          else
+            echo "✅ OPENAI_API_KEY is set"
+          fi
+
+          if [ -z "${{ secrets.TELEGRAM_TOKEN }}" ]; then
+            echo "❌ TELEGRAM_TOKEN is NOT set"
+          else
+            echo "✅ TELEGRAM_TOKEN is set"
+          fi
+
+          if [ -z "${{ secrets.TELEGRAM_CHANNEL }}" ]; then
+            echo "❌ TELEGRAM_CHANNEL is NOT set"
+          else
+            echo "✅ TELEGRAM_CHANNEL is set (value: ${{ secrets.TELEGRAM_CHANNEL }})"
+          fi
+
+      - name: Install dependencies
+        run: pip install -r requirements_mvp.txt
+
+      - name: Run news parser
+        run: python main_mvp.py
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
