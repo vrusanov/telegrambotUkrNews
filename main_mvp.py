@@ -64,39 +64,33 @@ def process_article(article: Article, translator: Translator,
     logger.info(f"Обробляємо статтю: {article.title}")
     
     # Крок 1: Додаткова GPT класифікація (якщо потрібно)
-    text_for_classification = f"{article.title}\n{article.description}"
-    if article.full_text:
-        text_for_classification += f"\n{article.full_text[:500]}"
-    
-    classification = translator.classify_ukraine_related(text_for_classification)
-    
-    if classification != "Ukraine-related":
-        logger.info(f"Стаття не про Україну за GPT класифікацією: {article.title}")
-        return None
+    # ТИМЧАСОВО ВІДКЛЮЧЕНО через вичерпану квоту OpenAI
+    # text_for_classification = f"{article.title}\n{article.description}"
+    # if article.full_text:
+    #     text_for_classification += f"\n{article.full_text[:500]}"
+    #
+    # classification = translator.classify_ukraine_related(text_for_classification)
+    #
+    # if classification != "Ukraine-related":
+    #     logger.info(f"Стаття не про Україну за GPT класифікацією: {article.title}")
+    #     return None
+
+    # Пропускаємо GPT класифікацію - використовуємо тільки ключові слова
+    logger.info(f"Пропускаємо GPT класифікацію для: {article.title}")
     
     # Крок 2: Переклад українською
-    logger.info(f"Перекладаємо з мови: {article.language}")
-    
-    title_ua = translator.translate_to_ukrainian(article.title, article.language)
-    description_ua = translator.translate_to_ukrainian(article.description, article.language)
-    
-    full_text_ua = None
-    if article.full_text:
-        full_text_ua = translator.translate_to_ukrainian(article.full_text, article.language)
-    
-    if not title_ua:
-        logger.error(f"Не вдалося перекласти заголовок: {article.title}")
-        return None
-    
+    # ТИМЧАСОВО ВІДКЛЮЧЕНО через вичерпану квоту OpenAI
+    logger.info(f"Пропускаємо переклад для мови: {article.language}")
+
+    # Використовуємо оригінальний текст без перекладу
+    title_ua = article.title
+    description_ua = article.description
+    full_text_ua = article.full_text
+
     # Крок 3: Створення синопсису
-    text_for_summary = full_text_ua or description_ua or ""
-    summary_ua = summarizer.create_summary_from_parts(
-        title_ua, description_ua, text_for_summary
-    )
-    
-    if not summary_ua:
-        logger.warning(f"Не вдалося створити синопсис для: {title_ua}")
-        summary_ua = description_ua  # Fallback до опису
+    # ТИМЧАСОВО ВІДКЛЮЧЕНО через вичерпану квоту OpenAI
+    logger.info("Пропускаємо створення синопсису")
+    summary_ua = description_ua or "Короткий опис недоступний"
     
     return {
         'title': title_ua,
