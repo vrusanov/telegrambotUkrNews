@@ -1,7 +1,4 @@
-"""
-RSS/HTML парсер згідно з технічними вимогами
-Використовує feedparser + BeautifulSoup для fallback HTML-парсингу
-"""
+"""RSS/HTML парсер новин"""
 
 import feedparser
 import requests
@@ -14,12 +11,9 @@ import logging
 from langdetect import detect, DetectorFactory
 import re
 
-# Встановлюємо seed для стабільних результатів
 DetectorFactory.seed = 0
-
 logger = logging.getLogger(__name__)
 
-# RSS стрічки
 RSS_FEEDS = {
     'swissinfo': 'https://www.swissinfo.ch/rss',
     '20min': 'https://www.20min.ch/rss',
@@ -27,7 +21,6 @@ RSS_FEEDS = {
     'nzz': 'https://www.nzz.ch/recent.rss'
 }
 
-# Ключові слова для фільтрації
 UKRAINE_KEYWORDS = [
     "Україна", "українці", "Ukraine", "Ukrainer", "Ukrainiens",
     "Kyiv", "Kiev", "Zelensky", "Zelenskyy", "Зеленський"

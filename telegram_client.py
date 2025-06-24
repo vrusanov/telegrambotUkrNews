@@ -1,7 +1,4 @@
-"""
-Telegram клієнт для надсилання повідомлень
-Використовує python-telegram-bot з Markdown V2 форматуванням
-"""
+"""Telegram клієнт для надсилання повідомлень"""
 
 import logging
 from typing import Optional, List

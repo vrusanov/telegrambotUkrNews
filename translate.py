@@ -1,7 +1,4 @@
-"""
-Обгортка OpenAI API для перекладу
-Використовує GPT-3.5-turbo згідно з вимогами
-"""
+"""OpenAI API для перекладу та класифікації"""
 
 import openai
 import logging

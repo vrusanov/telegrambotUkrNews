@@ -1,7 +1,4 @@
-"""
-Резюмування статті через OpenAI API
-Використовує GPT-3.5-turbo для створення синопсису
-"""
+"""Резюмування статей через OpenAI API"""
 
 import openai
 import logging
