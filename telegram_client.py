@@ -5,35 +5,33 @@ Telegram клієнт для надсилання повідомлень
 
 import logging
 from typing import Optional, List
-from telegram import Bot
-from telegram.constants import ParseMode
-from telegram.error import TelegramError
-import asyncio
 import json
 import os
 from datetime import datetime
+import requests
 
 logger = logging.getLogger(__name__)
 
 
 class TelegramClient:
     """Клас для роботи з Telegram Bot API"""
-    
+
     def __init__(self, token: str, channel_id: str):
         """
         Ініціалізація Telegram клієнта
-        
+
         Args:
             token: Telegram Bot Token
             channel_id: ID каналу для публікації
         """
-        self.bot = Bot(token=token)
+        self.token = token
         self.channel_id = channel_id
+        self.base_url = f"https://api.telegram.org/bot{token}"
         self.seen_file = "data/seen.json"
-        
+
         # Створюємо директорію для даних
         os.makedirs("data", exist_ok=True)
-        
+
         # Завантажуємо список опублікованих URL
         self.seen_urls = self._load_seen_urls()
     
@@ -126,18 +124,28 @@ class TelegramClient:
         self.seen_urls.add(url)
         self._save_seen_urls()
     
-    async def send_message_async(self, title: str, summary: str, full_text: str, 
-                                url: str, source: str) -> Optional[int]:
+    def _send_telegram_request(self, method: str, data: dict) -> dict:
+        """Надсилає запит до Telegram API"""
+        try:
+            url = f"{self.base_url}/{method}"
+            response = requests.post(url, json=data, timeout=30)
+            return response.json()
+        except Exception as e:
+            logger.error(f"Помилка запиту до Telegram API: {e}")
+            return {"ok": False, "description": str(e)}
+
+    def send_message_sync(self, title: str, summary: str, full_text: str,
+                         url: str, source: str) -> Optional[int]:
         """
-        Асинхронно надсилає повідомлення в Telegram
-        
+        Надсилає повідомлення в Telegram
+
         Args:
             title: Заголовок українською
             summary: Синопсис
             full_text: Повний текст
             url: Посилання на оригінал
             source: Джерело
-            
+
         Returns:
             ID повідомлення або None у разі помилки
         """
@@ -145,78 +153,63 @@ class TelegramClient:
         if self.is_url_seen(url):
             logger.info(f"URL вже опублікований: {url}")
             return None
-        
+
         try:
             # Форматуємо повідомлення
             message = self._format_message(title, summary, full_text, url, source)
-            
+
             # Надсилаємо повідомлення
-            sent_message = await self.bot.send_message(
-                chat_id=self.channel_id,
-                text=message,
-                parse_mode=ParseMode.MARKDOWN_V2,
-                disable_web_page_preview=False
-            )
-            
-            # Позначаємо як опублікований
-            self.mark_url_as_seen(url)
-            
-            logger.info(f"Повідомлення надіслано: ID {sent_message.message_id}")
-            return sent_message.message_id
-            
-        except TelegramError as e:
-            logger.error(f"Помилка Telegram API: {e}")
-            return None
+            data = {
+                "chat_id": self.channel_id,
+                "text": message,
+                "parse_mode": "MarkdownV2",
+                "disable_web_page_preview": False
+            }
+
+            result = self._send_telegram_request("sendMessage", data)
+
+            if result.get("ok"):
+                message_id = result["result"]["message_id"]
+                # Позначаємо як опублікований
+                self.mark_url_as_seen(url)
+                logger.info(f"Повідомлення надіслано: ID {message_id}")
+                return message_id
+            else:
+                logger.error(f"Помилка Telegram API: {result.get('description')}")
+                return None
+
         except Exception as e:
             logger.error(f"Помилка надсилання повідомлення: {e}")
             return None
     
-    def send_message(self, title: str, summary: str, full_text: str, 
+    def send_message(self, title: str, summary: str, full_text: str,
                     url: str, source: str) -> Optional[int]:
         """
-        Синхронна обгортка для надсилання повідомлення
-        
+        Надсилає повідомлення в Telegram
+
         Args:
             title: Заголовок українською
             summary: Синопсис
             full_text: Повний текст
             url: Посилання на оригінал
             source: Джерело
-            
+
         Returns:
             ID повідомлення або None у разі помилки
         """
-        try:
-            # Запускаємо асинхронну функцію
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(
-                self.send_message_async(title, summary, full_text, url, source)
-            )
-            loop.close()
-            return result
-        except Exception as e:
-            logger.error(f"Помилка синхронного виклику: {e}")
-            return None
-    
-    async def test_connection_async(self) -> bool:
-        """Асинхронно тестує з'єднання з Telegram"""
-        try:
-            me = await self.bot.get_me()
-            logger.info(f"Telegram бот підключено: @{me.username}")
-            return True
-        except Exception as e:
-            logger.error(f"Помилка підключення до Telegram: {e}")
-            return False
+        return self.send_message_sync(title, summary, full_text, url, source)
     
     def test_connection(self) -> bool:
-        """Синхронна обгортка для тестування з'єднання"""
+        """Тестує з'єднання з Telegram"""
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(self.test_connection_async())
-            loop.close()
-            return result
+            result = self._send_telegram_request("getMe", {})
+            if result.get("ok"):
+                username = result["result"].get("username", "unknown")
+                logger.info(f"Telegram бот підключено: @{username}")
+                return True
+            else:
+                logger.error(f"Помилка підключення до Telegram: {result.get('description')}")
+                return False
         except Exception as e:
             logger.error(f"Помилка тестування з'єднання: {e}")
             return False
