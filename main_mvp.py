@@ -39,7 +39,6 @@ def load_environment_variables() -> dict:
         'telegram_channel': os.getenv('TELEGRAM_CHANNEL')
     }
     
-    # Перевіряємо обов'язкові змінні
     missing_vars = [key for key, value in config.items() if not value]
     if missing_vars:
         raise ValueError(f"Відсутні змінні середовища: {missing_vars}")
