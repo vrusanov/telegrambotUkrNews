@@ -20,8 +20,8 @@ from telegram_client import TelegramClient
 # 2. Оновіть OPENAI_API_KEY в GitHub Secrets
 # 3. Змініть False на True для потрібних функцій
 USE_GPT_CLASSIFICATION = False  # Встановіть True коли є OpenAI квота
-USE_TRANSLATION = False         # Встановіть True для перекладу українською
-USE_SUMMARIZATION = False       # Встановіть True для створення синопсису
+USE_TRANSLATION = True          # ✅ Ввімкнено переклад українською
+USE_SUMMARIZATION = True        # ✅ Ввімкнено створення синопсису
 
 
 def setup_logging():
@@ -72,7 +72,6 @@ def process_article(article: Article, translator: Translator,
     
     logger.info(f"Обробляємо статтю: {article.title}")
     
-    # Крок 1: Додаткова GPT класифікація (якщо ввімкнено)
     if USE_GPT_CLASSIFICATION:
         text_for_classification = f"{article.title}\n{article.description}"
         if article.full_text:
