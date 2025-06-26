@@ -2,8 +2,7 @@ name: Daily Swiss News Parser
 
 on:
   schedule:
-    - cron: '15 9 * * *'   # 09:15 UTC щодня
-    - cron: '15 17 * * *'  # 17:15 UTC щодня
+    - cron: '0 7,17 * * *'  # 07:00 та 17:00 UTC щодня (двічі на день)
   workflow_dispatch:
 
 jobs:

@@ -36,8 +36,11 @@ Text is "Ukraine-related" if it mentions:
 - Ukrainian government officials (Zelensky, etc.)
 - Military actions in Ukraine
 - Humanitarian aid to Ukraine
-- Ukrainian refugees
+- Ukrainian refugees in Switzerland
+- Status S (Schutzstatus S, statut S) for Ukrainians
+- Voting/referendum about Ukrainian refugees
 - Economic sanctions related to Ukraine war
+- Swiss-Ukrainian relations
 
 Respond with only "Ukraine-related" or "Other".
 

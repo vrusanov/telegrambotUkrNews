@@ -10,34 +10,29 @@ from typing import List, Dict, Optional
 import logging
 from langdetect import detect, DetectorFactory
 import re
+import hashlib
+import json
+import pathlib
 
 DetectorFactory.seed = 0
 logger = logging.getLogger(__name__)
 
 RSS_FEEDS = {
-    'swissinfo': 'https://www.swissinfo.ch/rss',
-    '20min': 'https://www.20min.ch/rss',
-    'letemps': 'https://www.letemps.ch/rss',
-    'nzz': 'https://www.nzz.ch/recent.rss'
+    'swissinfo': 'https://www.swissinfo.ch/service/srss/rss/ukraine',
+    'rts': 'https://www.rts.ch/info/suisse.rdf',
+    'srf': 'https://www.srf.ch/news/rss',
+    '20min': 'https://www.20min.ch/rss.xml',
+    'nzz': 'https://www.nzz.ch/recent.rss',
+    'blick': 'https://www.blick.ch/news/rss'
 }
 
-UKRAINE_KEYWORDS = [
-    # Основні терміни
-    "Україна", "українці", "Ukraine", "Ukrainer", "Ukrainiens",
-    "Kyiv", "Kiev", "Zelensky", "Zelenskyy", "Зеленський",
-
-    # Українці в Швейцарії
-    "ukrainische Flüchtlinge", "ukrainische Geflüchtete",
-    "réfugiés ukrainiens", "rifugiati ucraini",
-    "Ukrainian refugees", "Ukrainian community",
-    "ukrainische Gemeinde", "communauté ukrainienne",
-    "українська громада", "українські біженці",
-
-    # Швейцарсько-українські відносини
-    "Schweiz Ukraine", "Suisse Ukraine", "Switzerland Ukraine",
-    "ukrainische Hilfe", "aide ukrainienne", "Ukrainian aid",
-    "Solidarität Ukraine", "solidarité Ukraine"
-]
+# Ключові слова з регулярними виразами
+KEYWORDS = {
+    'uk': [r'Україн(ці|ець|ок|ка)', r'Статус[\s-]?S', r'голосуван(ня|ь)', r'референдум'],
+    'de': [r'Ukrain(ern|er|e)', r'Schutzstatus\s?S', r'Abstimmung', r'Volksabstimmung'],
+    'fr': [r'Ukraini(en|enne)s?', r'statut\s?S', r'votation', r'référendum'],
+    'en': [r'Ukrainian(s)?', r'status\s?S', r'vote', r'referendum']
+}
 
 
 class Article:
@@ -80,6 +75,33 @@ class NewsParser:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
+        self.seen_db = pathlib.Path('data/seen.json')
+        self.seen_urls = self._load_seen_urls()
+
+    def _load_seen_urls(self) -> set:
+        """Завантажує список вже оброблених URL"""
+        if self.seen_db.exists():
+            try:
+                return set(json.loads(self.seen_db.read_text(encoding='utf-8')))
+            except (json.JSONDecodeError, FileNotFoundError):
+                return set()
+        return set()
+
+    def _save_seen_urls(self):
+        """Зберігає список оброблених URL"""
+        self.seen_db.parent.mkdir(exist_ok=True)
+        self.seen_db.write_text(json.dumps(list(self.seen_urls)), encoding='utf-8')
+
+    def _is_url_seen(self, url: str) -> bool:
+        """Перевіряє чи URL вже оброблений"""
+        uid = hashlib.sha256(url.encode()).hexdigest()
+        return uid in self.seen_urls
+
+    def _mark_url_as_seen(self, url: str):
+        """Позначає URL як оброблений"""
+        uid = hashlib.sha256(url.encode()).hexdigest()
+        self.seen_urls.add(uid)
+        self._save_seen_urls()
     
     def _clean_text(self, text: str) -> str:
         """Очищає текст від HTML тегів"""
@@ -107,10 +129,21 @@ class NewsParser:
         now = datetime.now(pytz.UTC)
         return published_date >= (now - timedelta(hours=hours))
     
-    def _contains_ukraine_keywords(self, text: str) -> bool:
-        """Перевіряє наявність ключових слів про Україну"""
-        text_lower = text.lower()
-        return any(keyword.lower() in text_lower for keyword in UKRAINE_KEYWORDS)
+    def _contains_ukraine_keywords(self, text: str, language: str = 'de') -> bool:
+        """Перевіряє наявність ключових слів про Україну з регулярними виразами"""
+        # Визначаємо мову для ключових слів
+        lang_map = {'de': 'de', 'fr': 'fr', 'en': 'en', 'uk': 'uk'}
+        lang_key = lang_map.get(language, 'de')  # За замовчуванням німецька
+
+        # Перевіряємо всі мови якщо конкретна не знайдена
+        languages_to_check = [lang_key] if lang_key in KEYWORDS else ['de', 'fr', 'en', 'uk']
+
+        for lang in languages_to_check:
+            if lang in KEYWORDS:
+                for pattern in KEYWORDS[lang]:
+                    if re.search(pattern, text, re.IGNORECASE):
+                        return True
+        return False
     
     def parse_rss_feed(self, feed_url: str, source_name: str) -> List[Article]:
         """Парсить RSS стрічку через feedparser"""
@@ -142,15 +175,21 @@ class NewsParser:
                 
                 if not title or not url:
                     continue
-                
+
+                # Перевіряємо унікальність
+                if self._is_url_seen(url):
+                    continue
+
                 article = Article(title, description, url, source_name, published_date)
-                
-                # Перевіряємо ключові слова
+
+                # Перевіряємо ключові слова з урахуванням мови
                 text_to_check = f"{article.title} {article.description}"
-                if self._contains_ukraine_keywords(text_to_check):
+                if self._contains_ukraine_keywords(text_to_check, article.language):
                     article.is_ukraine_related = True
                     logger.info(f"Знайдено статтю про Україну: {article.title}")
-                
+                    # Позначаємо як оброблений тільки релевантні статті
+                    self._mark_url_as_seen(url)
+
                 articles.append(article)
                 
         except Exception as e:
