@@ -22,8 +22,21 @@ RSS_FEEDS = {
 }
 
 UKRAINE_KEYWORDS = [
+    # Основні терміни
     "Україна", "українці", "Ukraine", "Ukrainer", "Ukrainiens",
-    "Kyiv", "Kiev", "Zelensky", "Zelenskyy", "Зеленський"
+    "Kyiv", "Kiev", "Zelensky", "Zelenskyy", "Зеленський",
+
+    # Українці в Швейцарії
+    "ukrainische Flüchtlinge", "ukrainische Geflüchtete",
+    "réfugiés ukrainiens", "rifugiati ucraini",
+    "Ukrainian refugees", "Ukrainian community",
+    "ukrainische Gemeinde", "communauté ukrainienne",
+    "українська громада", "українські біженці",
+
+    # Швейцарсько-українські відносини
+    "Schweiz Ukraine", "Suisse Ukraine", "Switzerland Ukraine",
+    "ukrainische Hilfe", "aide ukrainienne", "Ukrainian aid",
+    "Solidarität Ukraine", "solidarité Ukraine"
 ]
 
 

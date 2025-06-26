@@ -20,8 +20,8 @@ from telegram_client import TelegramClient
 # 2. Оновіть OPENAI_API_KEY в GitHub Secrets
 # 3. Змініть False на True для потрібних функцій
 USE_GPT_CLASSIFICATION = False  # Встановіть True коли є OpenAI квота
-USE_TRANSLATION = False         # ❌ Квота вичерпана навіть з новим ключем
-USE_SUMMARIZATION = False       # ❌ Квота вичерпана навіть з новим ключем
+USE_TRANSLATION = True          # ✅ Ввімкнено після поповнення OpenAI
+USE_SUMMARIZATION = True        # ✅ Ввімкнено після поповнення OpenAI
 
 
 def setup_logging():
