@@ -3,10 +3,46 @@
 Автоматичний парсер швейцарських новин про Україну з публікацією в Telegram.
 
 ## Функції
-- Щоденний парсинг RSS (Swissinfo, Le Temps, 20min, NZZ)
-- Фільтрація новин про Україну
+- Щоденний парсинг RSS (7 швейцарських джерел)
+- Розширена фільтрація новин про Україну та Статус S
 - Переклад українською через GPT-3.5
-- Публікація в Telegram
+- Розгорнуті синопсиси (5-8 речень)
+- Публікація в Telegram з хештегами
+
+## RSS Джерела
+
+| Джерело | URL | Мова | Опис |
+|---------|-----|------|------|
+| SwissInfo | https://www.swissinfo.ch/eng/rss | EN | Офіційний портал Швейцарії |
+| SRF News | https://www.srf.ch/news/rss | DE | Швейцарське радіо та телебачення |
+| RTS Info | https://www.rts.ch/info/rss.xml | FR | Французькомовне телебачення |
+| 20 Minuten | https://www.20min.ch/rss | DE | Популярна німецькомовна газета |
+| Blick | https://www.blick.ch/rss.xml | DE | Швейцарська таблоїдна газета |
+| NZZ | https://www.nzz.ch/recent.rss | DE | Neue Zürcher Zeitung |
+| Watson | https://www.watson.ch/rss | DE | Онлайн-медіа платформа |
+
+## Ключові слова
+
+### Німецька (DE)
+- `Ukrain(ern|er|e)` - українці, українська
+- `Schutzstatus S` - статус захисту S
+- `Abstimmung`, `Volksabstimmung` - голосування
+- `Flüchtling(e)`, `Geflüchtete` - біженці
+- `Asyl`, `humanitär`, `Integration` - притулок, гуманітарний, інтеграція
+
+### Французька (FR)
+- `Ukraini(en|enne)s?` - українці
+- `statut S` - статус S
+- `votation`, `référendum` - голосування
+- `réfugié(e)s`, `asile` - біженці, притулок
+- `humanitaire`, `intégration` - гуманітарний, інтеграція
+
+### Англійська (EN)
+- `Ukrainian(s)?` - українці
+- `status S` - статус S
+- `vote`, `referendum` - голосування
+- `refugee(s)`, `asylum` - біженці, притулок
+- `humanitarian`, `integration` - гуманітарний, інтеграція
 
 ## Запуск
 

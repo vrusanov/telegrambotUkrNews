@@ -88,27 +88,31 @@ class TelegramClient:
         summary_escaped = self._escape_markdown_v2(summary)
         source_escaped = self._escape_markdown_v2(source)
         
-        # Формуємо повідомлення
-        message = f"📢 *{title_escaped}*\n\n"
-        
+        # Формуємо повідомлення за новим форматом
+        message = f"💡 *{title_escaped}*\n"
+
         if summary:
             message += f"{summary_escaped}\n\n"
-        
-        if full_text and len(full_text) > len(summary or ""):
-            message += "\\-\\-\\-\n*Повний текст:*\n"
-            
-            # Обмежуємо довжину повного тексту
-            if len(full_text) > 1000:
-                full_text_short = full_text[:997] + "..."
+
+        if full_text:
+            message += "_📰 Повний текст:_\n"
+
+            # Обмежуємо довжину до 3800 символів
+            total_length = len(message) + len(url) + 100  # резерв для хештегів
+            available_length = 3800 - total_length
+
+            if len(full_text) > available_length:
+                full_text_short = full_text[:available_length] + "…"
             else:
                 full_text_short = full_text
-            
+
             full_text_escaped = self._escape_markdown_v2(full_text_short)
             message += f"{full_text_escaped}\n\n"
-        
-        # Додаємо посилання
-        message += f"[Читати оригінал]({url})\n\n"
-        message += f"Джерело: {source_escaped}"
+
+        # Додаємо посилання та хештеги
+        source_link = f"[Джерело]({url})"
+        hashtags = "🇨🇭#Switzerland 🇺🇦#Ukraine"
+        message += f"{source_link} | {hashtags}"
         
         return message
     

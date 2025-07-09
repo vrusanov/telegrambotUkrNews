@@ -29,25 +29,19 @@ class Translator:
         Returns:
             "Ukraine-related" або "Other"
         """
-        prompt = """Classify the text as "Ukraine-related" or "Other".
+        prompt = """Classify the Swiss news as one of three categories:
 
-Text is "Ukraine-related" if it mentions:
-- Ukraine, Ukrainian people, Ukrainian cities
-- Ukrainian government officials (Zelensky, etc.)
-- Military actions in Ukraine
-- Humanitarian aid to Ukraine
-- Ukrainian refugees in Switzerland
-- Status S (Schutzstatus S, statut S) for Ukrainians
-- Voting/referendum about Ukrainian refugees
-- Economic sanctions related to Ukraine war
-- Swiss-Ukrainian relations
-
-Respond with only "Ukraine-related" or "Other".
+Categories:
+- "Ukraine-in-CH" - News about Ukraine, war, Ukrainian people, Ukrainian refugees in Switzerland, Swiss-Ukrainian relations
+- "Status-S" - News about Status S (Schutzstatus S, statut S), voting/referendum about Ukrainian protection status
+- "Other" - News not related to Ukraine or Ukrainians
 
 Text:
 ---
 {text}
 ---
+
+Respond with only: "Ukraine-in-CH", "Status-S", or "Other"
 
 Classification:""".format(text=text)
         
@@ -63,8 +57,12 @@ Classification:""".format(text=text)
             
             result = response.choices[0].message.content.strip()
             logger.info(f"GPT класифікація: {result}")
-            
-            return "Ukraine-related" if "Ukraine-related" in result else "Other"
+
+            # Приймаємо обидві категорії як релевантні
+            if result in ["Ukraine-in-CH", "Status-S"]:
+                return "Ukraine-related"
+            else:
+                return "Other"
             
         except Exception as e:
             logger.error(f"Помилка GPT класифікації: {e}")

@@ -17,21 +17,37 @@ import pathlib
 DetectorFactory.seed = 0
 logger = logging.getLogger(__name__)
 
-RSS_FEEDS = {
-    'swissinfo': 'https://www.swissinfo.ch/service/srss/rss/ukraine',
-    'rts': 'https://www.rts.ch/info/suisse.rdf',
+LIST_RSS = {
+    'swissinfo': 'https://www.swissinfo.ch/eng/rss',
     'srf': 'https://www.srf.ch/news/rss',
-    '20min': 'https://www.20min.ch/rss.xml',
+    'rts': 'https://www.rts.ch/info/rss.xml',
+    '20min': 'https://www.20min.ch/rss',
+    'blick': 'https://www.blick.ch/rss.xml',
     'nzz': 'https://www.nzz.ch/recent.rss',
-    'blick': 'https://www.blick.ch/news/rss'
+    'watson': 'https://www.watson.ch/rss'
 }
 
 # Ключові слова з регулярними виразами
 KEYWORDS = {
-    'uk': [r'Україн(ці|ець|ок|ка)', r'Статус[\s-]?S', r'голосуван(ня|ь)', r'референдум'],
-    'de': [r'Ukrain(ern|er|e)', r'Schutzstatus\s?S', r'Abstimmung', r'Volksabstimmung'],
-    'fr': [r'Ukraini(en|enne)s?', r'statut\s?S', r'votation', r'référendum'],
-    'en': [r'Ukrainian(s)?', r'status\s?S', r'vote', r'referendum']
+    'uk': [
+        r'Україн(ці|ець|ок|ка)', r'Статус[\s-]?S', r'голосуван(ня|ь)', r'референдум',
+        r'біженці', r'притулок', r'гуманітарн(а|ий)', r'допомога'
+    ],
+    'de': [
+        r'Ukrain(ern|er|e)', r'Schutzstatus\s?S', r'Abstimmung', r'Volksabstimmung',
+        r'Flüchtling(e)?', r'Asyl', r'humanitär(e)?', r'Hilfe', r'Geflüchtete',
+        r'Kriegsflüchtling(e)?', r'Aufenthalt', r'Integration'
+    ],
+    'fr': [
+        r'Ukraini(en|enne)s?', r'statut\s?S', r'votation', r'référendum',
+        r'réfugié(e)?s?', r'asile', r'humanitaire', r'aide', r'accueil',
+        r'intégration', r'protection'
+    ],
+    'en': [
+        r'Ukrainian(s)?', r'status\s?S', r'vote', r'referendum',
+        r'refugee(s)?', r'asylum', r'humanitarian', r'aid', r'protection',
+        r'integration', r'shelter'
+    ]
 }
 
 
@@ -88,8 +104,14 @@ class NewsParser:
         return set()
 
     def _save_seen_urls(self):
-        """Зберігає список оброблених URL"""
+        """Зберігає список оброблених URL (максимум 1000 записів)"""
         self.seen_db.parent.mkdir(exist_ok=True)
+
+        # Обмежуємо до 1000 записів
+        if len(self.seen_urls) > 1000:
+            # Залишаємо тільки останні 1000 записів
+            self.seen_urls = set(list(self.seen_urls)[-1000:])
+
         self.seen_db.write_text(json.dumps(list(self.seen_urls)), encoding='utf-8')
 
     def _is_url_seen(self, url: str) -> bool:
@@ -150,12 +172,18 @@ class NewsParser:
         articles = []
         
         try:
-            logger.info(f"Парсимо RSS: {source_name}")
+            logger.info(f"Парсимо RSS: {source_name} ({feed_url})")
             feed = feedparser.parse(feed_url)
-            
+
             if feed.bozo:
-                logger.warning(f"RSS стрічка {source_name} має помилки")
-            
+                logger.warning(f"RSS стрічка {source_name} має помилки: {feed.bozo_exception}")
+
+            if not feed.entries:
+                logger.warning(f"RSS стрічка {source_name} порожня - немає статей")
+                return articles
+
+            logger.info(f"Знайдено {len(feed.entries)} статей в {source_name}")
+
             for entry in feed.entries:
                 # Парсимо дату
                 published_date = None
@@ -265,7 +293,7 @@ class NewsParser:
         """Парсить всі RSS стрічки"""
         all_articles = []
         
-        for source_name, feed_url in RSS_FEEDS.items():
+        for source_name, feed_url in LIST_RSS.items():
             articles = self.parse_rss_feed(feed_url, source_name)
             all_articles.extend(articles)
         
