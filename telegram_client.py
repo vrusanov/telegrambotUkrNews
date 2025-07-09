@@ -111,8 +111,8 @@ class TelegramClient:
 
         # Додаємо посилання та хештеги
         source_link = f"[Джерело]({url})"
-        hashtags = "🇨🇭#Switzerland 🇺🇦#Ukraine"
-        message += f"{source_link} | {hashtags}"
+        hashtags = "🇨🇭\\#Switzerland 🇺🇦\\#Ukraine"  # Екрануємо #
+        message += f"{source_link} \\| {hashtags}"  # Екрануємо |
         
         return message
     
